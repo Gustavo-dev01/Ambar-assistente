@@ -1,0 +1,6 @@
+{
+  "model": "qwen2.5-coder:14b",
+  "last_seen_automation_at": "2026-08-08T20:12:13+00:00",
+  "keep_alive": "30m",
+  "preload_model": false
+}

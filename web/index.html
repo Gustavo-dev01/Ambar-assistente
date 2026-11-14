@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ambar</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="desktop">
+    <div id="window">
+
+      <!-- Botão de tema flutuante (canto superior direito) -->
+      <div id="theme-picker-wrap">
+        <button id="theme-toggle" class="title-btn" aria-label="Escolher tema">
+          <svg class="icon-sun" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+          <svg class="icon-cyber" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="2" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="22" y2="12"/></svg>
+        </button>
+        <div id="theme-menu" class="hidden">
+          <button class="theme-opt" data-theme="dark">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+            Escuro
+          </button>
+          <button class="theme-opt" data-theme="light">
+            <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            Claro
+          </button>
+          <button class="theme-opt" data-theme="cyberpunk">
+            <svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="2" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="22" y2="12"/></svg>
+            Cyberpunk 32bits
+          </button>
+        </div>
+      </div>
+
+      <!-- Tela de logout -->
+      <!-- Sessão ativa -->
+      <div id="session">
+
+        <!-- Body -->
+        <div id="body-row">
+
+          <!-- Sidebar -->
+          <div id="sidebar">
+            <div id="sidebar-top">
+              <svg id="sidebar-mark" viewBox="0 0 24 24"><path d="M12 8V3M14 8.53L16.5 4.21M15.46 10L19.79 7.5M16 12H21M15.46 14L19.79 16.5M14 15.46L16.5 19.79M12 16V21M10 15.46L7.5 19.79M8.54 14L4.21 16.5M8 12H3M8.54 10L4.21 7.5M10 8.54L7.5 4.21"/></svg>
+              <span id="sidebar-title">Ambar</span>
+              <button id="sidebar-toggle" aria-label="Recolher ou expandir barra lateral">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+              </button>
+            </div>
+
+            <div id="sidebar-search-wrap">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+              <input id="sidebar-search" type="text" placeholder="Buscar..." aria-label="Buscar conversas" />
+            </div>
+
+            <div id="sidebar-primary">
+              <div class="side-item" id="new-chat-btn">
+                <svg class="accent-icon" viewBox="0 0 24 24" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span class="side-label accent-label">Nova conversa</span>
+              </div>
+
+              <div id="profile-wrap">
+                <div class="side-item" id="profile-btn" aria-label="Menu de perfil">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg>
+                  <span class="side-label" id="profile-btn-name">Maria Costa</span>
+                </div>
+                <div id="profile-menu" class="hidden">
+                  <button class="menu-opt" id="profile-menu-open">Perfil</button>
+                </div>
+              </div>
+
+              <div class="side-item nav-view" id="nav-home" data-view="chat">
+                <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+                <span class="side-label">Início</span>
+              </div>
+              <div class="side-item nav-view" id="nav-projects" data-view="projects">
+                <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                <span class="side-label flex1">Projetos</span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+              <div class="side-item nav-view" id="nav-library" data-view="library">
+                <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M4 5.5V21"/></svg>
+                <span class="side-label flex1">Biblioteca</span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+              <div class="side-item nav-view" id="nav-knowledge" data-view="knowledge">
+                <svg viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 0-4 4v8a4 4 0 0 0 4-4V8a4 4 0 0 0 4-4z"/><path d="M12 4a4 4 0 0 1 4 4v8a4 4 0 0 1-4-4"/><path d="M12 12v8"/></svg>
+                <span class="side-label flex1">Base de conhecimento</span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+              <div class="side-item nav-view" id="nav-preview" data-view="preview">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><line x1="7" y1="7" x2="7.01" y2="7"/><line x1="7" y1="17" x2="7.01" y2="17"/></svg>
+                <span class="side-label flex1">Servidor preview</span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+              <div class="side-item nav-view" id="nav-models" data-view="models">
+                <svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><line x1="12" y1="4" x2="12" y2="8"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="13.5" r="1.3"/><circle cx="15" cy="13.5" r="1.3"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                <span class="side-label flex1">Modelos de IA</span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+              <div class="side-item nav-view" id="nav-automation" data-view="automation">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                <span class="side-label flex1">Automação</span>
+                <span id="automation-badge" class="side-badge hidden"></span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+
+              <div class="side-item nav-view" id="nav-setup" data-view="setup">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><circle cx="12" cy="8.5" r="0.8"/></svg>
+                <span class="side-label flex1">Primeiros passos</span>
+                <span id="setup-badge" class="side-badge hidden"></span>
+                <svg class="chevron side-label" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+              </div>
+            </div>
+
+            <div class="side-sep" id="pinned-sep" hidden></div>
+
+            <div class="side-section-label side-label" id="pinned-title" hidden>FIXADOS</div>
+            <div id="sidebar-pinned"></div>
+
+            <div class="side-sep"></div>
+
+            <div id="sidebar-history">
+              <div id="history-toolbar">
+                <span class="side-section-label" id="history-title">CONVERSAS</span>
+                <button id="select-mode-toggle" aria-label="Selecionar várias conversas">Selecionar</button>
+              </div>
+              <div id="bulk-actions-bar" class="hidden">
+                <span id="bulk-count">0 selecionadas</span>
+                <button id="bulk-delete-btn" aria-label="Excluir selecionadas">Excluir</button>
+                <button id="bulk-cancel-btn" aria-label="Cancelar seleção">Cancelar</button>
+              </div>
+              <div id="history-groups"></div>
+              <div id="no-search-results" class="hidden">Nenhum resultado.</div>
+            </div>
+          </div>
+
+          <!-- Main -->
+          <div id="main">
+
+            <!-- View: Chat -->
+            <section id="view-chat" class="view">
+              <div id="orb-header">
+                <div id="orb-wrap">
+                  <canvas id="status-orb" width="380" height="380"></canvas>
+                </div>
+                <div id="orb-status">
+                  <svg id="orb-thinking-icon" class="hidden" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                  <span id="orb-label">Pronta para ajudar</span>
+                </div>
+                <div id="suggestions">
+                  <button class="suggestion-chip" data-text="Quais são as principais métricas de ativação?">Quais são as principais métricas de ativação?</button>
+                  <button class="suggestion-chip" data-text="Resuma as dores mais recentes dos usuários">Resuma as dores mais recentes dos usuários</button>
+                  <button class="suggestion-chip" data-text="Quais bugs críticos estão em aberto?">Quais bugs críticos estão em aberto?</button>
+                </div>
+              </div>
+
+              <div id="chat"></div>
+
+
+              <div id="loading-notice" class="hidden"></div>
+
+              <div id="confirm-box" class="hidden"></div>
+
+              <div id="attachment-preview" class="hidden"></div>
+
+              <div id="input-row">
+                <input id="attach-file-input" type="file" accept="image/*" multiple hidden />
+                <input id="attach-pdf-input" type="file" accept="application/pdf" hidden />
+                <div id="attach-menu-wrap">
+                  <button id="attach-btn" aria-label="Anexar arquivo" title="Anexar arquivo">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  </button>
+                  <div id="attach-menu" class="hidden">
+                    <button type="button" id="attach-opt-image" class="attach-menu-opt">
+                      <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                      Imagem
+                    </button>
+                    <button type="button" id="attach-opt-pdf" class="attach-menu-opt">
+                      <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      PDF
+                    </button>
+                  </div>
+                </div>
+                <div id="input-pill">
+                  <input id="chat-input" type="text" placeholder="Pergunte algo ao agente..." aria-label="Mensagem" />
+                </div>
+                <button id="mic-btn" aria-label="Comando de voz (em breve)" title="Em breve" disabled>
+                  <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+                </button>
+                <button id="send-btn" aria-label="Enviar mensagem">
+                  <svg viewBox="0 0 24 24" fill="var(--interactive-text)"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+                <button id="stop-btn" class="hidden" aria-label="Parar geração" title="Parar geração">
+                  <svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+                </button>
+              </div>
+            </section>
+
+            <!-- View: Projetos -->
+            <section id="view-projects" class="view hidden">
+              <h2 class="view-title">Projetos</h2>
+
+              <form id="new-project-form">
+                <input id="new-project-name" type="text" placeholder="Nome do projeto" aria-label="Nome do projeto" />
+                <input id="new-project-desc" type="text" placeholder="Descrição (opcional) — usada como contexto pro agente" aria-label="Descrição do projeto" />
+                <button type="submit" class="btn-accent">Criar projeto</button>
+              </form>
+
+              <span id="projects-empty" class="empty-msg hidden">Nenhum projeto ainda.</span>
+              <div id="projects-list" class="card-list"></div>
+            </section>
+
+            <!-- View: Biblioteca -->
+            <section id="view-library" class="view hidden">
+              <h2 class="view-title">Biblioteca</h2>
+
+              <div id="memory-section">
+                <div id="memory-section-header">
+                  <h3 id="memory-section-title">Memória do agente · <span id="memory-count">0</span></h3>
+                  <button id="memory-clear" class="btn-outline btn-outline-danger">Limpar tudo</button>
+                </div>
+                <span id="memory-empty" class="empty-msg hidden">Nenhuma memória salva ainda.</span>
+                <div id="memory-list" class="card-list"></div>
+              </div>
+
+              <h3 class="view-subtitle">Itens salvos</h3>
+              <form id="new-library-form">
+                <input id="new-library-name" type="text" placeholder="Nome do item" aria-label="Nome do item" />
+                <textarea id="new-library-content" placeholder="Texto do prompt salvo..." aria-label="Conteúdo do item" rows="2"></textarea>
+                <button type="submit" class="btn-accent">Salvar</button>
+              </form>
+              <span id="library-empty" class="empty-msg hidden">Nenhum item salvo ainda.</span>
+              <div id="library-list" class="card-list"></div>
+            </section>
+
+            <!-- View: Base de conhecimento -->
+            <section id="view-knowledge" class="view hidden">
+              <h2 class="view-title">Base de conhecimento</h2>
+              <p class="view-desc">Cole textos, documentação ou exemplos de código aqui. Quando você mandar uma mensagem relacionada, o agente busca os trechos mais relevantes e usa como contexto automaticamente.</p>
+
+              <form id="new-knowledge-form">
+                <input id="new-knowledge-title" type="text" placeholder="Título (ex: Convenções de CSS do projeto)" aria-label="Título do item" />
+                <textarea id="new-knowledge-content" placeholder="Cole aqui o texto, documentação ou exemplo de código..." aria-label="Conteúdo do item" rows="4"></textarea>
+                <button type="submit" class="btn-accent">Adicionar à base</button>
+              </form>
+
+              <span id="knowledge-empty" class="empty-msg hidden">Nenhum item na base de conhecimento ainda.</span>
+              <div id="knowledge-list" class="card-list"></div>
+            </section>
+
+            <!-- View: Servidor preview -->
+            <section id="view-preview" class="view hidden">
+              <h2 class="view-title">Servidor preview</h2>
+              <div id="preview-status-card" class="card">
+                <div id="preview-status-head">
+                  <span id="preview-dot"></span>
+                  <span id="preview-status-text">Nenhum servidor de preview rodando</span>
+                </div>
+                <div id="preview-status-actions">
+                  <a id="preview-link" class="card-icon-btn hidden" href="#" target="_blank" rel="noopener" aria-label="Abrir no navegador" title="Abrir no navegador">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  </a>
+                  <button id="preview-refresh" class="card-icon-btn hidden" aria-label="Atualizar" title="Atualizar">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  </button>
+                  <button id="preview-stop" class="card-icon-btn danger hidden" aria-label="Parar servidor" title="Parar servidor">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+                  </button>
+                </div>
+              </div>
+              <iframe id="preview-frame" class="hidden"></iframe>
+              <div id="preview-empty">
+                <p>O preview ao vivo do seu projeto aparece aqui quando você iniciar um servidor com o agente.</p>
+              </div>
+            </section>
+
+            <!-- View: Modelos de IA -->
+            <section id="view-models" class="view hidden">
+              <h2 class="view-title">Modelos de IA</h2>
+
+              <div id="runtime-panel" class="runtime-panel">
+                <div class="runtime-head">
+                  <h3>Desempenho</h3>
+                  <span id="runtime-state" class="runtime-state">Verificando…</span>
+                </div>
+                <p class="runtime-hint">
+                  O modelo precisa ser carregado na memória antes de responder. Na primeira
+                  vez isso pode levar alguns minutos, dependendo do seu computador.
+                </p>
+
+                <label class="runtime-field">
+                  <span class="runtime-label">Manter o modelo carregado por</span>
+                  <select id="keep-alive-select"></select>
+                  <span class="runtime-desc">
+                    Mais tempo deixa as respostas rápidas; menos tempo devolve memória ao
+                    computador. Se o seu PC for mais simples, prefira um tempo menor.
+                  </span>
+                </label>
+
+                <label class="runtime-field runtime-check">
+                  <input id="preload-check" type="checkbox" />
+                  <span>
+                    <span class="runtime-label">Carregar o modelo ao abrir o Ambar</span>
+                    <span class="runtime-desc">
+                      Deixa a primeira pergunta rápida, mas ocupa memória assim que o app
+                      abre. Recomendado só se o seu computador tiver memória sobrando.
+                    </span>
+                  </span>
+                </label>
+
+                <button id="preload-now-btn" class="runtime-btn">Carregar modelo agora</button>
+
+                <!-- Mesmo par barra + tempo decorrido do aviso do chat (decisão #42), mas
+                     aqui: quem clica no botão acima está OLHANDO esta tela, e o aviso do
+                     chat só apareceria se ele trocasse de view. -->
+                <div id="runtime-loading" class="runtime-loading hidden">
+                  <div class="load-bar"></div>
+                  <div class="load-meta">
+                    <span>Sem previsão exata — depende do computador</span>
+                    <span class="load-elapsed">há 0s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div id="models-list" class="card-list"></div>
+            </section>
+
+
+
+            <!-- View: Primeiros passos (instalação do Ollama e dos modelos) -->
+            <section id="view-setup" class="view hidden">
+              <h2 class="view-title">Primeiros passos</h2>
+
+              <div id="setup-status" class="setup-status">Verificando…</div>
+
+              <p class="setup-intro">
+                O Ambar funciona 100% no seu computador — nada do que você escreve é enviado
+                para a internet. Para isso, ele precisa de dois componentes gratuitos:
+                o <strong>Ollama</strong> (o motor que faz a IA funcionar) e pelo menos um
+                <strong>modelo</strong> (o "cérebro" que responde). Siga os passos abaixo uma
+                única vez.
+              </p>
+
+              <div class="setup-step">
+                <div class="setup-step-head"><span class="setup-num">1</span><h3>Instalar o Ollama</h3></div>
+                <div class="setup-step-body">
+                  <p>É o programa que executa a IA na sua máquina. É gratuito e oficial.</p>
+                  <ol>
+                    <li>Acesse <code>https://ollama.com/download</code> no seu navegador.</li>
+                    <li>Clique em <strong>Download for Windows</strong> e salve o arquivo.</li>
+                    <li>Abra o arquivo baixado e siga a instalação normalmente (Avançar → Instalar).</li>
+                    <li>Ao terminar, o Ollama fica rodando sozinho em segundo plano. Você verá
+                      um ícone de lhama perto do relógio, no canto inferior direito da tela.</li>
+                  </ol>
+                  <p class="setup-note">
+                    Não precisa criar conta, nem pagar, nem configurar nada. Se o ícone da lhama
+                    não aparecer, procure "Ollama" no menu Iniciar e abra.
+                  </p>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="setup-step-head"><span class="setup-num">2</span><h3>Baixar um modelo (o "cérebro")</h3></div>
+                <div class="setup-step-body">
+                  <p>
+                    O modelo é o que realmente pensa e responde. Ele é baixado uma vez e fica
+                    salvo no seu computador. Atenção: são arquivos grandes (vários GB), então
+                    use uma boa conexão e tenha espaço livre em disco.
+                  </p>
+                  <ol>
+                    <li>Abra o <strong>Prompt de Comando</strong>: aperte a tecla Windows, digite
+                      <code>cmd</code> e tecle Enter.</li>
+                    <li>Digite o comando abaixo e tecle Enter:</li>
+                  </ol>
+                  <pre class="setup-cmd">ollama pull qwen2.5-coder:7b</pre>
+                  <p>
+                    Vai aparecer uma barra de progresso. Quando chegar a 100% e voltar a linha
+                    de comando, pode fechar a janela preta.
+                  </p>
+                  <p class="setup-note">
+                    <strong>Qual modelo escolher?</strong> Quanto maior o número, mais inteligente
+                    e mais pesado. Escolha pela memória da sua placa de vídeo:
+                  </p>
+                  <ul class="setup-models">
+                    <li><code>qwen2.5-coder:1.5b</code> — computadores simples, sem placa de vídeo dedicada (~1 GB)</li>
+                    <li><code>qwen2.5-coder:7b</code> — a escolha equilibrada, funciona na maioria (~4,7 GB)</li>
+                    <li><code>qwen2.5-coder:14b</code> — respostas melhores, exige placa de vídeo boa (~9 GB)</li>
+                  </ul>
+                  <p class="setup-note">
+                    Se o Ambar ficar muito lento, volte aqui e baixe um modelo menor — é a
+                    solução mais eficaz.
+                  </p>
+                  <p class="setup-note">
+                    <strong>Onde o modelo fica salvo?</strong> O próprio Ollama cuida disso e
+                    guarda tudo em <code>C:\Users\seu-usuário\.ollama\models</code>.
+                    Você não precisa mover nada para a pasta do Ambar — na verdade, mover
+                    faria o Ollama perder o modelo. O Ambar apenas pergunta ao Ollama quais
+                    modelos existem.
+                  </p>
+                  <p class="setup-note">
+                    <strong>Ficando sem espaço no disco C:?</strong> Cada modelo ocupa vários
+                    GB e eles se acumulam. Você pode remover os que não usa pela tela
+                    <strong>Modelos de IA</strong>, no ícone de lixeira de cada modelo.
+                  </p>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="setup-step-head"><span class="setup-num">3</span><h3>Escolher o modelo dentro do Ambar</h3></div>
+                <div class="setup-step-body">
+                  <ol>
+                    <li>Abra <strong>Modelos de IA</strong>, aqui na barra lateral.</li>
+                    <li>O modelo que você baixou aparece na lista. Clique nele para ativar.</li>
+                    <li>Pronto: volte para o chat e converse normalmente.</li>
+                  </ol>
+                  <p class="setup-note">
+                    Não apareceu na lista? Confira se o passo 2 terminou por completo e clique
+                    novamente em "Modelos de IA" para atualizar.
+                  </p>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="setup-step-head"><span class="setup-num">4</span><h3>Busca inteligente (opcional)</h3></div>
+                <div class="setup-step-body">
+                  <p>
+                    Para a Base de conhecimento encontrar assuntos por significado (e não só por
+                    palavras iguais), baixe também este modelo pequeno, no mesmo Prompt de Comando:
+                  </p>
+                  <pre class="setup-cmd">ollama pull bge-m3</pre>
+                  <p class="setup-note">
+                    Sem ele, a busca continua funcionando por palavras-chave — só fica menos precisa.
+                  </p>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="setup-step-head"><span class="setup-num">?</span><h3>Se algo der errado</h3></div>
+                <div class="setup-step-body">
+                  <p><strong>"O Ollama não está rodando"</strong> — procure "Ollama" no menu Iniciar
+                    e abra. Ele precisa estar ativo para o Ambar responder.</p>
+                  <p><strong>A primeira pergunta demora muito</strong> — é normal. O modelo está
+                    sendo carregado do disco para a memória e isso leva de alguns segundos a
+                    alguns minutos, dependendo do computador. As próximas são rápidas. Em
+                    "Modelos de IA" você pode ajustar esse comportamento.</p>
+                  <p><strong>O computador fica lento com o Ambar aberto</strong> — em "Modelos de IA",
+                    reduza o tempo em "Manter o modelo carregado por" e desligue o carregamento
+                    automático ao abrir. Se persistir, baixe um modelo menor (passo 2).</p>
+                  <p><strong>Não aparece nenhum modelo na lista</strong> — refaça o passo 2 e confirme
+                    que o download chegou a 100%.</p>
+                  <p><strong>O disco C: está enchendo</strong> — são os modelos, que ficam em
+                    <code>C:\Users\seu-usuário\.ollama\models</code> e ocupam vários GB cada.
+                    Apague os que não usa em "Modelos de IA", no ícone de lixeira. Não apague
+                    os arquivos pela mão: use a tela do Ambar ou o comando
+                    <code>ollama rm nome-do-modelo</code>.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- View: Automação -->
+            <section id="view-automation" class="view hidden">
+              <h2 class="view-title">Automação</h2>
+
+              <div class="automation-tabs">
+                <button type="button" class="automation-tab active" data-tab="tasks">Tarefas agendadas</button>
+                <button type="button" class="automation-tab" data-tab="orders">Ordens permanentes</button>
+              </div>
+
+              <div id="automation-tab-tasks" class="automation-panel">
+                <form id="new-task-form">
+                  <textarea id="new-task-instruction" placeholder="O que o agente deve fazer quando a tarefa disparar?" aria-label="Instrução da tarefa"></textarea>
+                  <div id="new-task-schedule-row">
+                    <select id="new-task-type" aria-label="Tipo de agendamento">
+                      <option value="once">Uma vez, daqui a...</option>
+                      <option value="daily">Todo dia, às...</option>
+                      <option value="weekly">Toda semana, às...</option>
+                    </select>
+                    <input id="new-task-minutes" type="number" min="1" placeholder="Minutos" aria-label="Minutos a partir de agora" />
+                    <input id="new-task-time" type="time" class="hidden" aria-label="Horário" />
+                    <select id="new-task-weekday" class="hidden" aria-label="Dia da semana">
+                      <option value="mon">Segunda</option>
+                      <option value="tue">Terça</option>
+                      <option value="wed">Quarta</option>
+                      <option value="thu">Quinta</option>
+                      <option value="fri">Sexta</option>
+                      <option value="sat">Sábado</option>
+                      <option value="sun">Domingo</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn-accent">Agendar tarefa</button>
+                </form>
+
+                <span id="tasks-empty" class="empty-msg hidden">Nenhuma tarefa agendada ainda.</span>
+                <div id="tasks-list" class="card-list"></div>
+              </div>
+
+              <div id="automation-tab-orders" class="automation-panel hidden">
+                <form id="new-standing-order-form">
+                  <textarea id="new-standing-order-text" maxlength="300" placeholder="Instrução de comportamento sempre ativa (ex: sempre que eu pedir X, faça Y também)" aria-label="Ordem permanente"></textarea>
+                  <span id="new-standing-order-count">0/300</span>
+                  <button type="submit" class="btn-accent">Salvar ordem permanente</button>
+                </form>
+
+                <span id="standing-orders-empty" class="empty-msg hidden">Nenhuma ordem permanente ainda.</span>
+                <div id="standing-orders-list" class="card-list"></div>
+              </div>
+            </section>
+
+            <!-- View: Perfil -->
+            <section id="view-profile" class="view hidden">
+              <h2 class="view-title">Perfil</h2>
+              <div id="profile-card">
+                <div id="profile-avatar"></div>
+                <div id="profile-info">
+                  <div id="profile-view-mode">
+                    <div id="profile-name-row">
+                      <span id="profile-display-name">Maria Costa</span>
+                    </div>
+                    <span id="profile-hint">É assim que o Ambar vai chamar você.</span>
+                  </div>
+                  <div id="profile-edit-mode" class="hidden">
+                    <input id="profile-name-input" type="text" placeholder="Seu nome" />
+                  </div>
+                </div>
+              </div>
+              <div id="profile-actions">
+                <button id="profile-edit-btn" class="btn-outline">Editar nome</button>
+                <button id="profile-save-btn" class="btn-accent hidden">Salvar</button>
+              </div>
+               <p id="app-footer">Desenvolvido por Ambar Systems</p>
+            </section>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>

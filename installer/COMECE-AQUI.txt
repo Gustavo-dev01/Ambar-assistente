@@ -1,0 +1,163 @@
+========================================================================
+  AMBAR - COMECE AQUI
+  Guia de instalacao em 3 passos
+========================================================================
+
+O Ambar e um assistente de IA que roda 100% no seu computador.
+Nada do que voce escreve e enviado para a internet.
+
+Para funcionar, ele precisa de dois componentes gratuitos:
+
+  - OLLAMA ... o motor que faz a IA funcionar
+  - MODELO ... o "cerebro" que responde as suas perguntas
+
+Voce faz isso uma unica vez. Leva cerca de 15 minutos, sendo que a maior
+parte e so esperar o download.
+
+
+------------------------------------------------------------------------
+  PASSO 1 - INSTALAR O OLLAMA
+------------------------------------------------------------------------
+
+1. Abra o navegador e acesse:
+
+       https://ollama.com/download
+
+2. Clique no botao "Download for Windows" e salve o arquivo.
+
+3. Abra o arquivo baixado e siga a instalacao (Avancar -> Instalar).
+
+4. Quando terminar, o Ollama fica rodando sozinho em segundo plano.
+   Voce vera um icone de LHAMA perto do relogio, no canto inferior
+   direito da tela.
+
+Nao precisa criar conta, nem pagar, nem configurar nada.
+
+  Nao apareceu o icone da lhama?
+  Procure "Ollama" no menu Iniciar e abra.
+
+
+------------------------------------------------------------------------
+  PASSO 2 - BAIXAR UM MODELO (O "CEREBRO")
+------------------------------------------------------------------------
+
+O modelo e o que realmente pensa e responde. E baixado uma vez e fica
+salvo no seu computador.
+
+ATENCAO: sao arquivos grandes (varios GB). Use uma boa conexao e
+confira se tem espaco livre no disco.
+
+1. Aperte a tecla WINDOWS, digite  cmd  e tecle ENTER.
+   (vai abrir uma janela preta - e o Prompt de Comando)
+
+2. Digite exatamente a linha abaixo e tecle ENTER:
+
+       ollama pull qwen2.5-coder:7b
+
+3. Vai aparecer uma barra de progresso. Quando chegar a 100% e a linha
+   de comando voltar, pode fechar a janela preta.
+
+
+  QUAL MODELO ESCOLHER?
+  ---------------------
+  Quanto maior o numero, mais inteligente e mais pesado o modelo.
+  Escolha conforme o seu computador:
+
+    ollama pull qwen2.5-coder:1.5b
+        ~1 GB  - computadores simples, sem placa de video dedicada
+
+    ollama pull qwen2.5-coder:7b
+        ~4,7 GB - equilibrado, funciona na maioria dos computadores
+                  (recomendado para comecar)
+
+    ollama pull qwen2.5-coder:14b
+        ~9 GB  - respostas melhores, exige placa de video boa
+                 (8 GB de memoria de video ou mais)
+
+  Se o Ambar ficar lento, baixe um modelo menor. E a solucao mais eficaz.
+
+
+  ONDE O MODELO FICA SALVO?
+  -------------------------
+  O proprio Ollama cuida disso. Ele guarda tudo em:
+
+       C:\Users\seu-usuario\.ollama\models
+
+  Voce NAO precisa mover nada para a pasta do Ambar. Na verdade, mover
+  faria o Ollama perder o modelo - o Ambar apenas pergunta ao Ollama
+  quais modelos existem, ele nunca procura o arquivo sozinho.
+
+  Cada modelo ocupa varios GB e eles se acumulam nessa pasta. Para
+  liberar espaco, apague os que nao usa pela tela "Modelos de IA" do
+  Ambar (icone de lixeira) ou pelo comando:
+
+       ollama rm nome-do-modelo
+
+  Nao apague os arquivos pela mao no Explorador de Arquivos.
+
+
+------------------------------------------------------------------------
+  PASSO 3 - ESCOLHER O MODELO DENTRO DO AMBAR
+------------------------------------------------------------------------
+
+1. Abra o Ambar pelo atalho na area de trabalho.
+
+2. Na barra lateral esquerda, clique em "Modelos de IA".
+
+3. O modelo que voce baixou aparece na lista. Clique nele para ativar.
+
+4. Pronto. Volte para o chat e converse normalmente.
+
+  Nao apareceu nenhum modelo na lista?
+  Confira se o download do passo 2 chegou a 100% e clique de novo em
+  "Modelos de IA" para atualizar a lista.
+
+
+------------------------------------------------------------------------
+  OPCIONAL - BUSCA INTELIGENTE
+------------------------------------------------------------------------
+
+Para a Base de conhecimento encontrar assuntos por significado (e nao
+so por palavras identicas), baixe tambem este modelo pequeno:
+
+       ollama pull bge-m3
+
+Sem ele a busca continua funcionando, so fica menos precisa.
+
+
+------------------------------------------------------------------------
+  SE ALGO DER ERRADO
+------------------------------------------------------------------------
+
+  "O Ollama nao esta rodando"
+      Procure "Ollama" no menu Iniciar e abra. Ele precisa estar ativo
+      para o Ambar conseguir responder.
+
+  A PRIMEIRA PERGUNTA DEMORA MUITO
+      E normal, nao travou. O modelo esta sendo carregado do disco para
+      a memoria - leva de alguns segundos a alguns minutos, dependendo
+      do computador. As proximas respostas sao bem mais rapidas.
+      O Ambar avisa na tela quando isso esta acontecendo.
+
+  O COMPUTADOR FICA LENTO COM O AMBAR ABERTO
+      Abra "Modelos de IA" e:
+        - reduza o tempo em "Manter o modelo carregado por"
+        - desligue "Carregar o modelo ao abrir o Ambar"
+      Se continuar lento, baixe um modelo menor (passo 2).
+
+  NAO APARECE NENHUM MODELO NA LISTA
+      Refaca o passo 2 e confirme que o download chegou a 100%.
+
+  O DISCO C: ESTA ENCHENDO
+      Sao os modelos, guardados em C:\Users\seu-usuario\.ollama\models.
+      Cada um ocupa varios GB. Apague os que nao usa na tela
+      "Modelos de IA" do Ambar (icone de lixeira) ou com o comando
+      ollama rm nome-do-modelo. Nao apague os arquivos pela mao.
+
+
+------------------------------------------------------------------------
+
+Este mesmo guia esta dentro do Ambar, na barra lateral, em
+"Primeiros passos" - com o status da sua instalacao em tempo real.
+
+========================================================================

@@ -1,0 +1,273 @@
+<meta charset="utf-8" />
+<title>Ambar — variações do movimento da barra</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --surface-default: oklch(20% 0.012 70);
+    --surface-elevated: oklch(26% 0.013 70);
+    --text-primary: oklch(96% 0.004 70);
+    --text-secondary: oklch(72% 0.014 70);
+    --interactive-default: #cc9a00;
+    --interactive-hover: #d9ab1f;
+    --interactive-text: #1A1A1A;
+    --border-default: oklch(34% 0.013 70);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(30% 0.03 45 / .5), transparent 55%), oklch(14% 0.006 70);
+  }
+  :root[data-theme="light"] {
+    --surface-default: oklch(97% 0.005 70);
+    --surface-elevated: oklch(93% 0.006 70);
+    --text-primary: #1C1917;
+    --text-secondary: oklch(46% 0.012 70);
+    --interactive-default: #d49e00;
+    --interactive-hover: #bd8f00;
+    --interactive-text: #000000;
+    --border-default: oklch(83% 0.01 70);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(85% 0.05 45 / .6), transparent 55%), oklch(90% 0.01 70);
+  }
+  :root[data-theme="cyberpunk"] {
+    --surface-default: oklch(16% 0.03 290);
+    --surface-elevated: oklch(22% 0.045 290);
+    --text-primary: oklch(93% 0.05 195);
+    --text-secondary: oklch(72% 0.09 195);
+    --interactive-default: oklch(64% 0.25 335);
+    --interactive-hover: oklch(70% 0.25 335);
+    --interactive-text: oklch(16% 0.03 290);
+    --border-default: oklch(42% 0.14 290);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(45% 0.22 330 / .4), transparent 55%), oklch(9% 0.02 290);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 22px 60px;
+    background: var(--desktop-bg); background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+
+  header.page h1 { margin: 0 0 6px; font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
+  header.page p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); max-width: 62ch; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin: 20px 0 30px; padding: 12px 14px;
+    background: var(--surface-elevated); border: 1px solid var(--border-default); border-radius: 12px;
+  }
+  .toolbar span.lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-secondary); margin-right: 4px;
+  }
+  .toolbar button {
+    font: inherit; font-size: 12.5px; padding: 6px 13px; cursor: pointer;
+    border-radius: 8px; border: 1px solid var(--border-default);
+    background: var(--surface-default); color: var(--text-primary);
+  }
+  .toolbar button:hover { border-color: var(--interactive-default); }
+  .toolbar button.on {
+    background: var(--interactive-default); color: var(--interactive-text);
+    border-color: var(--interactive-default); font-weight: 600;
+  }
+  .toolbar button:focus-visible { outline: 2px solid var(--interactive-hover); outline-offset: 2px; }
+
+  /* Cada variação mostrada dentro do aviso real do chat (opção A escolhida) */
+  .variant { margin-bottom: 26px; }
+  .variant-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .variant-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--interactive-default);
+  }
+  .variant-head h2 { margin: 0; font-size: 14.5px; font-weight: 620; }
+  .variant-desc { margin: 0 0 12px; font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); max-width: 64ch; }
+
+  .loading-notice {
+    padding: 12px 14px; border-radius: 12px;
+    font-size: 13px; line-height: 1.5; color: var(--text-primary);
+    background: color-mix(in oklch, var(--interactive-default) 12%, transparent);
+    border: 1px solid var(--interactive-default);
+  }
+  .loading-notice strong { color: var(--interactive-default); }
+
+  .load-bar {
+    height: 4px; margin-top: 11px;
+    border-radius: 99px;
+    background: color-mix(in oklch, var(--interactive-default) 20%, transparent);
+    overflow: hidden; position: relative;
+  }
+  .load-bar span {
+    /* left:0 é obrigatório: sem ele o absolute com top/bottom mas sem âncora
+       horizontal ignora o width e estica pela barra toda — a barra fica cheia e
+       parada, que foi exatamente o bug visto na primeira versão deste arquivo. */
+    position: absolute; top: 0; bottom: 0; left: 0;
+    border-radius: 99px;
+    will-change: transform;
+    background: linear-gradient(
+      90deg, transparent,
+      var(--interactive-default) 22%, var(--interactive-hover) 50%, var(--interactive-default) 78%,
+      transparent
+    );
+  }
+
+  /* O translateX é relativo à largura do PRÓPRIO segmento, não da barra. Para um
+     segmento de L% atravessar a barra inteira, ele percorre de -100% até (100/L)*100%.
+     Ex: 38% de largura → 100/38 ≈ 263%. Errar essa conta faz o traço parar antes do
+     fim ou sumir cedo demais. */
+
+  /* --- V1: um segmento só, com rastro suave --- */
+  .v1 span { width: 38%; animation: slide1 1.75s cubic-bezier(.62,.05,.36,.96) infinite; }
+  @keyframes slide1 {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(263%); }
+  }
+
+  /* --- V2: um segmento, velocidade constante (sem acelerar/desacelerar) --- */
+  .v2 span { width: 32%; animation: slide2 1.5s linear infinite; }
+  @keyframes slide2 {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(313%); }
+  }
+
+  /* --- V3: DOIS segmentos em sequência ("como partes") --- */
+  .v3 span { width: 30%; }
+  .v3 span:nth-child(1) { animation: slide3 1.9s cubic-bezier(.62,.05,.36,.96) infinite; }
+  .v3 span:nth-child(2) { animation: slide3 1.9s cubic-bezier(.62,.05,.36,.96) infinite; animation-delay: .95s; }
+  @keyframes slide3 {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(333%); }
+  }
+
+  /* --- V4: TRÊS blocos curtos e nítidos, tipo "esteira" --- */
+  .v4 span {
+    width: 14%;
+    background: var(--interactive-default);
+  }
+  .v4 span:nth-child(1) { animation: slide4 2.1s linear infinite; }
+  .v4 span:nth-child(2) { animation: slide4 2.1s linear infinite; animation-delay: .7s; }
+  .v4 span:nth-child(3) { animation: slide4 2.1s linear infinite; animation-delay: 1.4s; }
+  @keyframes slide4 {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(714%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .load-bar span {
+      animation: none !important;
+      width: 100% !important; transform: none !important;
+      opacity: .55; background: var(--interactive-default);
+    }
+    .load-bar span:nth-child(n+2) { display: none; }
+  }
+
+  .load-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    margin-top: 8px; font-size: 11.5px; color: var(--text-secondary);
+  }
+  .load-elapsed { font-variant-numeric: tabular-nums; }
+
+  footer.page {
+    margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--border-default);
+    font-size: 12.5px; line-height: 1.65; color: var(--text-secondary); max-width: 66ch;
+  }
+  footer.page strong { color: var(--text-primary); }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <h1>Qual movimento você quer?</h1>
+    <p>
+      Todas dentro do aviso do chat (opção A, já escolhida). Nenhuma cresce nem mostra
+      porcentagem — todas deslizam da esquerda para a direita e recomeçam.
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <span class="lbl">Tema</span>
+    <button type="button" data-theme-btn="dark" class="on">Escuro</button>
+    <button type="button" data-theme-btn="light">Claro</button>
+    <button type="button" data-theme-btn="cyberpunk">Cyberpunk</button>
+  </div>
+
+  <section class="variant">
+    <div class="variant-head"><span class="variant-tag">V1</span><h2>Um traço, com rastro suave</h2></div>
+    <p class="variant-desc">Acelera no meio e desacelera nas pontas. É a que você já viu no protótipo anterior.</p>
+    <div class="loading-notice">
+      <strong>Carregando o modelo na memória…</strong>
+      Isso acontece na primeira pergunta depois de abrir o Ambar e pode levar alguns minutos.
+      As próximas respostas são bem mais rápidas. Pode aguardar — não travou.
+      <div class="load-bar v1"><span></span></div>
+      <div class="load-meta">
+        <span>Sem previsão exata — depende do computador</span>
+        <span class="load-elapsed" data-elapsed>há 0s</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="variant">
+    <div class="variant-head"><span class="variant-tag">V2</span><h2>Um traço, velocidade constante</h2></div>
+    <p class="variant-desc">Mesma ideia, sem acelerar. Movimento mais mecânico e previsível.</p>
+    <div class="loading-notice">
+      <strong>Carregando o modelo na memória…</strong>
+      Isso acontece na primeira pergunta depois de abrir o Ambar e pode levar alguns minutos.
+      As próximas respostas são bem mais rápidas. Pode aguardar — não travou.
+      <div class="load-bar v2"><span></span></div>
+      <div class="load-meta">
+        <span>Sem previsão exata — depende do computador</span>
+        <span class="load-elapsed" data-elapsed>há 0s</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="variant">
+    <div class="variant-head"><span class="variant-tag">V3</span><h2>Dois traços em sequência</h2></div>
+    <p class="variant-desc">Quando o primeiro está saindo, o segundo já entra. Nunca fica um momento vazio.</p>
+    <div class="loading-notice">
+      <strong>Carregando o modelo na memória…</strong>
+      Isso acontece na primeira pergunta depois de abrir o Ambar e pode levar alguns minutos.
+      As próximas respostas são bem mais rápidas. Pode aguardar — não travou.
+      <div class="load-bar v3"><span></span><span></span></div>
+      <div class="load-meta">
+        <span>Sem previsão exata — depende do computador</span>
+        <span class="load-elapsed" data-elapsed>há 0s</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="variant">
+    <div class="variant-head"><span class="variant-tag">V4</span><h2>Três blocos curtos, tipo esteira</h2></div>
+    <p class="variant-desc">Blocos nítidos, sem desbotar nas pontas. É o mais literal de "partes passando".</p>
+    <div class="loading-notice">
+      <strong>Carregando o modelo na memória…</strong>
+      Isso acontece na primeira pergunta depois de abrir o Ambar e pode levar alguns minutos.
+      As próximas respostas são bem mais rápidas. Pode aguardar — não travou.
+      <div class="load-bar v4"><span></span><span></span><span></span></div>
+      <div class="load-meta">
+        <span>Sem previsão exata — depende do computador</span>
+        <span class="load-elapsed" data-elapsed>há 0s</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="page">
+    Me diga o número (<strong>V1</strong> a <strong>V4</strong>) e eu coloco no app. Se quiser
+    mais rápido, mais lento, mais grosso ou mais fino, é só dizer — ajusto antes de aplicar.
+  </footer>
+</div>
+
+<script>
+  const root = document.documentElement;
+  root.setAttribute("data-theme", "dark");
+  document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      root.setAttribute("data-theme", btn.dataset.themeBtn);
+      document.querySelectorAll("[data-theme-btn]").forEach((b) => b.classList.remove("on"));
+      btn.classList.add("on");
+    });
+  });
+
+  const started = Date.now();
+  const els = document.querySelectorAll("[data-elapsed]");
+  setInterval(() => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    const txt = s < 60 ? `há ${s}s` : `há ${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
+    els.forEach((el) => (el.textContent = txt));
+  }, 1000);
+</script>

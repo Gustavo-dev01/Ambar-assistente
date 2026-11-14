@@ -1,0 +1,376 @@
+<meta charset="utf-8" />
+<title>Ambar — barra de carregamento do modelo (protótipo)</title>
+<style>
+  /* Variáveis copiadas de web/style.css — mesmas cores do app real, sem inventar paleta. */
+  :root, :root[data-theme="dark"] {
+    --surface-default: oklch(20% 0.012 70);
+    --surface-elevated: oklch(26% 0.013 70);
+    --text-primary: oklch(96% 0.004 70);
+    --text-secondary: oklch(72% 0.014 70);
+    --interactive-default: #cc9a00;
+    --interactive-hover: #d9ab1f;
+    --interactive-text: #1A1A1A;
+    --border-default: oklch(34% 0.013 70);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(30% 0.03 45 / .5), transparent 55%), oklch(14% 0.006 70);
+  }
+  :root[data-theme="light"] {
+    --surface-default: oklch(97% 0.005 70);
+    --surface-elevated: oklch(93% 0.006 70);
+    --text-primary: #1C1917;
+    --text-secondary: oklch(46% 0.012 70);
+    --interactive-default: #d49e00;
+    --interactive-hover: #bd8f00;
+    --interactive-text: #000000;
+    --border-default: oklch(83% 0.01 70);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(85% 0.05 45 / .6), transparent 55%), oklch(90% 0.01 70);
+  }
+  :root[data-theme="cyberpunk"] {
+    --surface-default: oklch(16% 0.03 290);
+    --surface-elevated: oklch(22% 0.045 290);
+    --text-primary: oklch(93% 0.05 195);
+    --text-secondary: oklch(72% 0.09 195);
+    --interactive-default: oklch(64% 0.25 335);
+    --interactive-hover: oklch(70% 0.25 335);
+    --interactive-text: oklch(16% 0.03 290);
+    --border-default: oklch(42% 0.14 290);
+    --desktop-bg: radial-gradient(circle at 25% 15%, oklch(45% 0.22 330 / .4), transparent 55%), oklch(9% 0.02 290);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 22px 60px;
+    background: var(--desktop-bg);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  header.page { margin-bottom: 26px; }
+  header.page h1 { margin: 0 0 6px; font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
+  header.page p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); max-width: 62ch; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin: 20px 0 30px; padding: 12px 14px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+  }
+  .toolbar span.lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-secondary); margin-right: 4px;
+  }
+  .toolbar button {
+    font: inherit; font-size: 12.5px; padding: 6px 13px; cursor: pointer;
+    border-radius: 8px; border: 1px solid var(--border-default);
+    background: var(--surface-default); color: var(--text-primary);
+  }
+  .toolbar button:hover { border-color: var(--interactive-default); }
+  .toolbar button.on {
+    background: var(--interactive-default); color: var(--interactive-text);
+    border-color: var(--interactive-default); font-weight: 600;
+  }
+  .toolbar button:focus-visible { outline: 2px solid var(--interactive-hover); outline-offset: 2px; }
+
+  /* ---- Cada opção ---- */
+  .opt { margin-bottom: 34px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+  .opt-num {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    color: var(--interactive-default); text-transform: uppercase;
+  }
+  .opt-head h2 { margin: 0; font-size: 15px; font-weight: 620; }
+  .opt-desc { margin: 0 0 14px; font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); max-width: 64ch; }
+
+  .frame {
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    background: var(--surface-default);
+    overflow: hidden;
+  }
+  .frame-cap {
+    font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700;
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-elevated);
+  }
+  .frame-body { padding: 20px; }
+
+  /* ============ A BARRA ============ */
+  .load-bar {
+    height: 4px;
+    border-radius: 99px;
+    background: color-mix(in oklch, var(--interactive-default) 20%, transparent);
+    overflow: hidden;
+    position: relative;
+  }
+  .load-bar::after {
+    content: "";
+    position: absolute; inset: 0;
+    width: 38%;
+    border-radius: 99px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--interactive-default) 22%,
+      var(--interactive-hover) 50%,
+      var(--interactive-default) 78%,
+      transparent
+    );
+    animation: slide 1.75s cubic-bezier(.62,.05,.36,.96) infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(363%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .load-bar::after {
+      animation: none;
+      width: 100%;
+      opacity: .55;
+      background: var(--interactive-default);
+    }
+  }
+
+  .load-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    margin-top: 8px; font-size: 11.5px; color: var(--text-secondary);
+  }
+  .load-elapsed { font-variant-numeric: tabular-nums; }
+
+  /* ---- Simulação: aviso no chat ---- */
+  .chat-sim { display: flex; flex-direction: column; gap: 12px; }
+  .bubble {
+    align-self: flex-end; max-width: 74%;
+    background: var(--interactive-default); color: var(--interactive-text);
+    padding: 9px 13px; border-radius: 13px 13px 3px 13px; font-size: 13px; line-height: 1.5;
+  }
+  .loading-notice {
+    margin: 0; padding: 12px 14px; border-radius: 12px;
+    font-size: 13px; line-height: 1.5; color: var(--text-primary);
+    background: color-mix(in oklch, var(--interactive-default) 12%, transparent);
+    border: 1px solid var(--interactive-default);
+  }
+  .loading-notice strong { color: var(--interactive-default); }
+  .loading-notice .load-bar { margin-top: 11px; }
+
+  /* ---- Simulação: painel de desempenho ---- */
+  .view-title { margin: 0 0 18px; font-size: 20px; font-weight: 620; }
+  .runtime-panel {
+    padding: 18px 20px; border-radius: 12px;
+    background: var(--surface-elevated); border: 1px solid var(--border-default);
+  }
+  .runtime-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .runtime-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .runtime-state {
+    font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--interactive-default); color: var(--interactive-default);
+    background: color-mix(in oklch, var(--interactive-default) 14%, transparent);
+  }
+  .runtime-hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+  .runtime-panel .load-bar { margin-top: 15px; }
+  .runtime-field { margin-top: 16px; }
+  .runtime-label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--text-secondary); }
+  .runtime-field select {
+    font: inherit; font-size: 13px; width: 100%; max-width: 340px; padding: 7px 10px;
+    border-radius: 8px; border: 1px solid var(--border-default);
+    background: var(--surface-default); color: var(--text-primary);
+  }
+
+  /* Posição B: barra abaixo do título da view */
+  .title-bar-slot { margin: -8px 0 20px; max-width: 420px; }
+
+  .note {
+    margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--text-secondary);
+    padding-left: 12px; border-left: 2px solid var(--border-default); max-width: 66ch;
+  }
+  .note strong { color: var(--text-primary); font-weight: 600; }
+
+  footer.page {
+    margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border-default);
+    font-size: 12.5px; line-height: 1.65; color: var(--text-secondary); max-width: 66ch;
+  }
+  footer.page strong { color: var(--text-primary); }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <h1>Barra de carregamento do modelo</h1>
+    <p>
+      Três posições possíveis, com as cores reais do Ambar. Troque o tema e ligue/desligue
+      a barra para comparar antes de escolher o que vai para o app.
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <span class="lbl">Tema</span>
+    <button type="button" data-theme-btn="dark" class="on">Escuro</button>
+    <button type="button" data-theme-btn="light">Claro</button>
+    <button type="button" data-theme-btn="cyberpunk">Cyberpunk</button>
+    <span class="lbl" style="margin-left:14px">Barra</span>
+    <button type="button" id="toggle-bar" class="on">Ligada</button>
+  </div>
+
+  <!-- ============ OPÇÃO A ============ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">Opção A</span>
+      <h2>Dentro do aviso, no chat</h2>
+    </div>
+    <p class="opt-desc">
+      A barra fica junto do texto que já explica a espera — é onde o usuário está olhando
+      quando manda a pergunta e nada acontece.
+    </p>
+
+    <div class="frame">
+      <div class="frame-cap">Tela de chat</div>
+      <div class="frame-body">
+        <div class="chat-sim">
+          <div class="bubble">Me ajude a organizar as vendas do mês</div>
+          <div class="loading-notice">
+            <strong>Carregando o modelo na memória…</strong>
+            Isso acontece na primeira pergunta depois de abrir o Ambar e pode levar alguns
+            minutos. As próximas respostas são bem mais rápidas. Pode aguardar — não travou.
+            <div class="load-bar" data-bar></div>
+            <div class="load-meta">
+              <span>Sem previsão exata — depende do computador</span>
+              <span class="load-elapsed" data-elapsed>há 0s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPÇÃO B ============ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">Opção B</span>
+      <h2>Abaixo do título "Modelos de IA"</h2>
+    </div>
+    <p class="opt-desc">
+      A barra atravessa o topo da tela inteira, como as barras de carregamento de navegador.
+      Chama bastante atenção — mas fica longe do chat, que é onde a espera incomoda.
+    </p>
+
+    <div class="frame">
+      <div class="frame-cap">Tela Modelos de IA</div>
+      <div class="frame-body">
+        <h2 class="view-title">Modelos de IA</h2>
+        <div class="title-bar-slot">
+          <div class="load-bar" data-bar></div>
+          <div class="load-meta">
+            <span>Carregando o modelo…</span>
+            <span class="load-elapsed" data-elapsed>há 0s</span>
+          </div>
+        </div>
+
+        <div class="runtime-panel">
+          <div class="runtime-head">
+            <h3>Desempenho</h3>
+            <span class="runtime-state">Carregando o modelo…</span>
+          </div>
+          <p class="runtime-hint">
+            O modelo precisa ser carregado na memória antes de responder. Na primeira vez
+            isso pode levar alguns minutos, dependendo do seu computador.
+          </p>
+          <div class="runtime-field">
+            <span class="runtime-label">Manter o modelo carregado por</span>
+            <select><option>30 minutos (recomendado)</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPÇÃO C ============ -->
+  <section class="opt">
+    <div class="opt-head">
+      <span class="opt-num">Opção C</span>
+      <h2>Dentro do painel Desempenho</h2>
+    </div>
+    <p class="opt-desc">
+      A barra fica logo abaixo do texto que explica o carregamento, dentro do painel que já
+      mostra o estado. É a posição mais contida das três.
+    </p>
+
+    <div class="frame">
+      <div class="frame-cap">Tela Modelos de IA</div>
+      <div class="frame-body">
+        <h2 class="view-title">Modelos de IA</h2>
+        <div class="runtime-panel">
+          <div class="runtime-head">
+            <h3>Desempenho</h3>
+            <span class="runtime-state">Carregando o modelo…</span>
+          </div>
+          <p class="runtime-hint">
+            O modelo precisa ser carregado na memória antes de responder. Na primeira vez
+            isso pode levar alguns minutos, dependendo do seu computador.
+          </p>
+          <div class="load-bar" data-bar></div>
+          <div class="load-meta">
+            <span>Sem previsão exata — depende do computador</span>
+            <span class="load-elapsed" data-elapsed>há 0s</span>
+          </div>
+          <div class="runtime-field">
+            <span class="runtime-label">Manter o modelo carregado por</span>
+            <select><option>30 minutos (recomendado)</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">
+      <strong>Por que a barra não tem porcentagem:</strong> o Ollama não informa progresso.
+      Ele responde apenas "carregado" ou "não carregado" — não existe um "40%" para ler.
+      Qualquer número na tela seria inventado, e ficaria parado em 99% enquanto o disco
+      ainda trabalha. O tempo decorrido ("há 47s") é real, medido pelo próprio Ambar.
+    </p>
+  </section>
+
+  <footer class="page">
+    As três usam a mesma barra e o mesmo contador — muda só onde ela aparece. Nada disso
+    está no app ainda: este arquivo é só para você escolher. As opções <strong>A</strong> e
+    <strong>C</strong> podem conviver, já que aparecem em telas diferentes.
+  </footer>
+</div>
+
+<script>
+  const root = document.documentElement;
+  root.setAttribute("data-theme", "dark");
+
+  document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      root.setAttribute("data-theme", btn.dataset.themeBtn);
+      document.querySelectorAll("[data-theme-btn]").forEach((b) => b.classList.remove("on"));
+      btn.classList.add("on");
+    });
+  });
+
+  // Contador de tempo decorrido: é a única informação REAL de progresso disponível,
+  // já que o Ollama não reporta percentual de carregamento.
+  const started = Date.now();
+  const elapsedEls = document.querySelectorAll("[data-elapsed]");
+  setInterval(() => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    const txt = s < 60 ? `há ${s}s` : `há ${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
+    elapsedEls.forEach((el) => (el.textContent = txt));
+  }, 1000);
+
+  const toggle = document.getElementById("toggle-bar");
+  let on = true;
+  toggle.addEventListener("click", () => {
+    on = !on;
+    toggle.classList.toggle("on", on);
+    toggle.textContent = on ? "Ligada" : "Desligada";
+    document.querySelectorAll("[data-bar]").forEach((b) => (b.style.display = on ? "" : "none"));
+  });
+</script>

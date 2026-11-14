@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Orb Tipográfico Interativo</title>
+  <style>
+    html,body { height:100%; margin:0; background:#000; font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    #container { position:relative; width:100%; height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    canvas { display:block; width:100%; height:100%; cursor:none; }
+    .cursor { position:absolute; width:14px; height:14px; border-radius:50%; background:rgba(255,255,255,0.9); pointer-events:none; transform:translate(-50%,-50%); mix-blend-mode:screen; transition:transform 0.08s linear; }
+    .hint { position:absolute; bottom:18px; left:18px; color:rgba(255,255,255,0.6); font-size:13px; user-select:none; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="main"></canvas>
+    <div class="cursor" id="fakeCursor"></div>
+    <div class="hint">Mova o mouse para interagir. Clique para atrair.</div>
+  </div>
+
+  <script>
+  // Configurações principais
+  const config = {
+    particleSize: 1.6,
+    density: 6,            // maior = menos partículas
+    jitter: 0.6,
+    speed: 0.08,
+    repulseRadius: 90,
+    repulseForce: 0.95,
+    attractOnClick: true,
+    attractForce: 0.14,
+    orbRadiusFactor: 0.32, // fração do menor lado para o raio do orb
+    orbitNoise: 0.9,       // intensidade do movimento orbital
+    surfaceThickness: 28   // quão "espessa" é a superfície do orb (em pixels)
+  };
+
+  // Elementos
+  const canvas = document.getElementById('main');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const fakeCursor = document.getElementById('fakeCursor');
+
+  // Offscreen canvas para gerar forma tipográfica
+  const off = document.createElement('canvas');
+  const offCtx = off.getContext('2d');
+
+  let W = 0, H = 0;
+  let particles = [];
+  let mouse = { x: 0, y: 0, down: false };
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  // Resize e inicialização
+  function resize() {
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    W = Math.floor(window.innerWidth);
+    H = Math.floor(window.innerHeight);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    off.width = Math.floor(W * 0.7);
+    off.height = Math.floor(H * 0.7);
+    createShapeAndParticles();
+  }
+
+  // Cria forma tipográfica no offscreen e amostra pixels
+  function createShapeAndParticles() {
+    const ow = off.width, oh = off.height;
+    offCtx.clearRect(0,0,ow,oh);
+    offCtx.fillStyle = '#000';
+    offCtx.fillRect(0,0,ow,oh);
+
+    const fontSize = Math.floor(Math.min(ow,oh) * 0.45);
+    offCtx.fillStyle = '#fff';
+    offCtx.textAlign = 'center';
+    offCtx.textBaseline = 'middle';
+    offCtx.font = `bold ${fontSize}px "Arial", "Helvetica", sans-serif`;
+
+    const cx = ow/2, cy = oh/2;
+    const layers = 5;
+    for (let i=0;i<layers;i++){
+      offCtx.save();
+      const angle = (i - Math.floor(layers/2)) * 0.05;
+      offCtx.translate(cx,cy);
+      offCtx.rotate(angle);
+      offCtx.fillText('ROSE', 0, 0);
+      offCtx.restore();
+    }
+
+    const img = offCtx.getImageData(0,0,ow,oh);
+    const data = img.data;
+    particles = [];
+    const step = Math.max(1, Math.floor(config.density));
+    // Mapeia pixels brancos para pontos 3D na superfície de uma esfera (orb)
+    const orbRadius = Math.min(W,H) * config.orbRadiusFactor;
+    const centerX = W/2, centerY = H/2;
+
+    for (let y=0; y<oh; y+=step) {
+      for (let x=0; x<ow; x+=step) {
+        const idx = (y*ow + x)*4;
+        const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
+        if (a > 128 && (r+g+b)/3 > 200) {
+          // posição 2D relativa ao centro do offscreen
+          const relX = x - ow/2;
+          const relY = y - oh/2;
+          // normalizar para -1..1
+          const nx = relX / (ow/2);
+          const ny = relY / (oh/2);
+          // projetar para esfera: calcular z a partir de x,y (unit sphere)
+          const len2 = nx*nx + ny*ny;
+          let nz = 0;
+          if (len2 <= 1) nz = Math.sqrt(1 - len2);
+          else {
+            // se fora do círculo unitário, normalizar para borda
+            const inv = 1 / Math.sqrt(len2);
+            nx *= inv; ny *= inv; nz = 0;
+          }
+          // mapear para orbRadius e centralizar
+          const surfaceX = centerX + nx * orbRadius;
+          const surfaceY = centerY + ny * orbRadius;
+          const depth = nz; // 0..1 (0 = equador, 1 = frente)
+          // espalhar partículas ao longo da espessura da superfície
+          const thickness = (Math.random() - 0.5) * config.surfaceThickness;
+          const px = surfaceX + (Math.random()-0.5)*6;
+          const py = surfaceY + (Math.random()-0.5)*6;
+          // cada partícula guarda sua posição alvo na superfície 3D (x,y,depth)
+          particles.push({
+            x: px,
+            y: py,
+            z: depth,
+            ox: surfaceX,
+            oy: surfaceY,
+            oz: depth,
+            vx: (Math.random()-0.5)*0.6,
+            vy: (Math.random()-0.5)*0.6,
+            vz: (Math.random()-0.5)*0.02,
+            size: config.particleSize * (0.8 + Math.random()*0.8),
+            angleOffset: Math.random()*Math.PI*2
+          });
+        }
+      }
+    }
+  }
+
+  // Atualiza e desenha partículas com efeito orb 3D simples
+  function updateAndDraw(dt) {
+    // Limpar fundo
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,W,H);
+
+    // Parâmetros de perspectiva
+    const fov = Math.min(W,H) * 0.9; // campo de visão para projeção
+    const centerX = W/2, centerY = H/2;
+
+    for (let p of particles) {
+      // ruído orbital para movimento desordenado
+      const t = performance.now() * 0.0004;
+      const orbitX = Math.cos(t + p.angleOffset) * config.orbitNoise * (1 - p.z);
+      const orbitY = Math.sin(t*1.1 + p.angleOffset) * config.orbitNoise * (1 - p.z);
+      p.vx += (Math.random()-0.5) * config.jitter * 0.6 + orbitX * 0.02;
+      p.vy += (Math.random()-0.5) * config.jitter * 0.6 + orbitY * 0.02;
+      p.vz += (Math.random()-0.5) * config.jitter * 0.002;
+
+      // força de retorno para a superfície alvo (ox,oy,oz)
+      p.vx += (p.ox - p.x) * config.speed * 0.9;
+      p.vy += (p.oy - p.y) * config.speed * 0.9;
+      p.vz += (p.oz - p.z) * config.speed * 0.06;
+
+      // interação com mouse (2D repulsão/atração)
+      const mx = mouse.x, my = mouse.y;
+      const dx = p.x - mx, dy = p.y - my;
+      const dist2 = dx*dx + dy*dy;
+      const r = config.repulseRadius;
+      if (dist2 < r*r) {
+        const dist = Math.sqrt(dist2) || 0.001;
+        const force = (1 - dist / r) * config.repulseForce;
+        if (mouse.down && config.attractOnClick) {
+          p.vx -= (dx / dist) * config.attractForce * (1 - dist/r) * 2;
+          p.vy -= (dy / dist) * config.attractForce * (1 - dist/r) * 2;
+          // puxar também para frente (aumentar z)
+          p.vz += 0.02 * (1 - dist/r);
+        } else {
+          p.vx += (dx / dist) * force * 2;
+          p.vy += (dy / dist) * force * 2;
+          p.vz -= 0.01 * (1 - dist/r);
+        }
+      }
+
+      // atualizar posições
+      p.x += p.vx;
+      p.y += p.vy;
+      p.z += p.vz;
+
+      // amortecimento
+      p.vx *= 0.92;
+      p.vy *= 0.92;
+      p.vz *= 0.88;
+
+      // limitar z entre 0 (equador) e 1 (frente)
+      p.z = Math.max(0, Math.min(1, p.z));
+
+      // projeção simples: deslocar por profundidade para simular 3D
+      // partículas com z maior aparecem maiores e mais claras
+      const depthScale = 0.6 + 0.8 * p.z;
+      const drawX = p.x + (p.z - p.oz) * 6; // leve deslocamento por profundidade
+      const drawY = p.y + (p.z - p.oz) * 6;
+      const drawSize = Math.max(0.6, p.size * depthScale);
+
+      // cor e brilho por profundidade
+      const alpha = 0.35 + 0.65 * p.z;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#fff';
+      ctx.translate(drawX, drawY);
+      ctx.rotate((p.x + p.y) * 0.0009);
+      // desenhar texto pequeno para manter tipografia na superfície
+      ctx.font = `${Math.max(1, Math.round(drawSize*6))}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ROSE', 0, 0);
+      ctx.restore();
+    }
+
+    // Opcional: desenhar contorno sutil do orb
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, Math.min(W,H) * config.orbRadiusFactor + config.surfaceThickness*0.4, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Loop de animação
+  let last = performance.now();
+  function loop(now) {
+    const dt = (now - last) / 1000;
+    last = now;
+    updateAndDraw(dt);
+    requestAnimationFrame(loop);
+  }
+
+  // Eventos do mouse e toque
+  function onMove(e) {
+    const x = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0].clientX);
+    const y = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0].clientY);
+    mouse.x = x;
+    mouse.y = y;
+    fakeCursor.style.left = mouse.x + 'px';
+    fakeCursor.style.top = mouse.y + 'px';
+    fakeCursor.style.transform = mouse.down ? 'translate(-50%,-50%) scale(1.6)' : 'translate(-50%,-50%) scale(1)';
+  }
+  function onDown() { mouse.down = true; fakeCursor.style.transform = 'translate(-50%,-50%) scale(1.6)'; }
+  function onUp() { mouse.down = false; fakeCursor.style.transform = 'translate(-50%,-50%) scale(1)'; }
+
+  // Inicialização e eventos
+  window.addEventListener('resize', () => { clearTimeout(window._resizeTO); window._resizeTO = setTimeout(resize, 120); });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive:true });
+  window.addEventListener('mousedown', onDown);
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchstart', onDown, { passive:true });
+  window.addEventListener('touchend', onUp);
+
+  // Tecla R para regenerar
+  window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') createShapeAndParticles(); });
+
+  // Start
+  resize();
+  requestAnimationFrame(loop);
+
+  // pulso do cursor
+  (function pulseCursor(){
+    fakeCursor.style.opacity = 0.9;
+    setTimeout(()=> fakeCursor.style.opacity = 0.6, 400);
+    setTimeout(()=> fakeCursor.style.opacity = 0.9, 800);
+    setTimeout(pulseCursor, 1200);
+  })();
+
+  </script>
+</body>
+</html>

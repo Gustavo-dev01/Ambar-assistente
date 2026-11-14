@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>Teste — Orb Tipográfica (AMBAR)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: oklch(14% 0.006 70);
+    --surface: oklch(20% 0.012 70);
+    --text: oklch(96% 0.004 70);
+    --text-secondary: oklch(72% 0.014 70);
+    --accent: #cc9a00;
+    --orb-rgb: 255,255,255;
+  }
+  :root[data-theme="light"] {
+    --bg: oklch(90% 0.01 70);
+    --surface: oklch(97% 0.005 70);
+    --text: #1C1917;
+    --text-secondary: oklch(46% 0.012 70);
+    --accent: #d49e00;
+    --orb-rgb: 28,25,23;
+  }
+  :root[data-theme="cyberpunk"] {
+    --bg: oklch(9% 0.02 290);
+    --surface: oklch(16% 0.03 290);
+    --text: oklch(93% 0.05 195);
+    --text-secondary: oklch(72% 0.09 195);
+    --accent: oklch(64% 0.25 335);
+    --orb-rgb: 230,50,180;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    background: var(--bg);
+    font-family: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+    color: var(--text);
+    transition: background .4s ease, color .4s ease;
+  }
+
+  h1 { font-size: 15px; font-weight: 600; opacity: .7; letter-spacing: .02em; margin: 0; }
+
+  #orb-wrap {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    cursor: pointer;
+    transition: transform .5s ease;
+  }
+  #orb-wrap.thinking { transform: scale(1.05); }
+  #orb-wrap.speaking { transform: scale(1.09); }
+  #orb-wrap.hover { transform: scale(1.04); }
+
+  #orb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  #orb-status { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-secondary); }
+
+  #controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 480px; }
+  button {
+    font-family: inherit; font-size: 12.5px; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid var(--text-secondary); background: var(--surface); color: var(--text);
+    cursor: pointer; opacity: .85;
+  }
+  button:hover { opacity: 1; }
+  button.active { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  #theme-row { display: flex; gap: 8px; margin-top: 6px; }
+  #perf { font-size: 11px; color: var(--text-secondary); opacity: .6; }
+
+  footer { font-size: 11.5px; color: var(--text-secondary); opacity: .6; text-align: center; max-width: 460px; }
+</style>
+</head>
+<body data-theme="dark">
+
+<h1>PROTÓTIPO — não afeta o app real</h1>
+
+<div id="orb-wrap">
+  <canvas id="orb-canvas" width="520" height="520"></canvas>
+</div>
+
+<div id="orb-status">
+  <span id="orb-label">Pronta para ajudar</span>
+  <span id="perf"></span>
+</div>
+
+<div id="controls">
+  <button data-state="idle" class="active">idle</button>
+  <button data-state="thinking">thinking</button>
+  <button data-state="speaking">speaking</button>
+  <button data-state="voice">voice (mic)</button>
+</div>
+
+<div id="theme-row">
+  <button data-theme="dark" class="active">dark</button>
+  <button data-theme="light">light</button>
+  <button data-theme="cyberpunk">cyberpunk</button>
+</div>
+
+<footer>Esfera formada pela palavra "AMBAR" repetida em anéis, estilo ditherpunk. Passe o mouse por cima pra ver a reação de hover. "AMBAR" é pré-renderizada uma única vez num carimbo offscreen e reaproveitada via drawImage a cada partícula — nada de desenhar texto do zero por partícula a cada frame, que é o que deixava a versão anterior pesada.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("orb-canvas");
+  const ctx = canvas.getContext("2d");
+  const wrap = document.getElementById("orb-wrap");
+  const label = document.getElementById("orb-label");
+  const perfEl = document.getElementById("perf");
+  const LABELS = { idle: "Pronta para ajudar", thinking: "Pensando...", speaking: "Respondendo...", voice: "Ouvindo..." };
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const SIZE = 520;
+  canvas.width = SIZE * DPR;
+  canvas.height = SIZE * DPR;
+  ctx.scale(DPR, DPR);
+
+  const CX = SIZE / 2, CY = SIZE / 2;
+  const R = 200;
+  // Raio máximo que o glow pode alcançar sem estourar o canvas: se o último
+  // stop do radial gradient (glowR) passar de SIZE/2, o círculo do gradiente
+  // é cortado reto pelo próprio limite do canvas — é isso que aparecia como uma
+  // "borda"/janela cinza sutil ao redor da orb, mais visível no hover (que
+  // aumenta glowR ainda mais). Deixa ~10% de folga em vez de colar em SIZE/2.
+  const GLOW_MAX_R = SIZE / 2 * 0.9;
+  const WORD = "AMBAR";
+
+  // ---- Carimbo do texto: renderizado 1x por cor, reaproveitado via drawImage ----
+  // (a versão anterior desenhava fillText() por partícula a cada frame — centenas/milhares
+  // de chamadas de rasterização de fonte por frame, o que é o que a deixava pesada.
+  // Aqui o texto vira uma textura pronta; desenhar é só um blit de imagem.)
+  const STAMP_FONT_PX = 34;
+  function buildStamp(rgb) {
+    const off = document.createElement("canvas");
+    const pad = 6;
+    const octx = off.getContext("2d");
+    octx.font = `700 ${STAMP_FONT_PX}px 'Segoe UI', system-ui, sans-serif`;
+    const w = Math.ceil(octx.measureText(WORD).width) + pad * 2;
+    const h = STAMP_FONT_PX + pad * 2;
+    off.width = w;
+    off.height = h;
+    octx.font = `700 ${STAMP_FONT_PX}px 'Segoe UI', system-ui, sans-serif`;
+    octx.textAlign = "left";
+    octx.textBaseline = "middle";
+    octx.fillStyle = `rgb(${rgb})`;
+    octx.fillText(WORD, pad, h / 2);
+    return { canvas: off, w, h };
+  }
+
+  // ---- Partículas: cada uma é uma instância do carimbo, disposta em anéis
+  // de latitude sobre uma esfera (mesma projeção 3D da v1), com leve rotação
+  // própria pra dar aparência "irregular" como na referência.
+  const rawPoints = [];
+  const RINGS = 22;
+  for (let i = 1; i < RINGS; i++) {
+    const lat = (i / RINGS) * Math.PI - Math.PI / 2;
+    const ringR = Math.cos(lat);
+    if (ringR < 0.05) continue;
+    const count = Math.max(3, Math.round(RINGS * 1.7 * ringR));
+    for (let j = 0; j < count; j++) {
+      const lon = (j / count) * Math.PI * 2 + (i % 2) * 0.15;
+      rawPoints.push({
+        x0: Math.cos(lat) * Math.cos(lon),
+        y0: Math.sin(lat),
+        z0: Math.cos(lat) * Math.sin(lon),
+        phase: Math.random() * Math.PI * 2,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.4,
+        scaleJitter: 0.75 + Math.random() * 0.5,
+      });
+    }
+  }
+  const N = rawPoints.length;
+  const X0 = new Float32Array(N), Y0 = new Float32Array(N), Z0 = new Float32Array(N);
+  const PHASE = new Float32Array(N), ROT0 = new Float32Array(N), ROTSPD = new Float32Array(N), SJITTER = new Float32Array(N);
+  rawPoints.forEach((p, i) => {
+    X0[i] = p.x0; Y0[i] = p.y0; Z0[i] = p.z0;
+    PHASE[i] = p.phase; ROT0[i] = p.rot; ROTSPD[i] = p.rotSpeed; SJITTER[i] = p.scaleJitter;
+  });
+
+  const PX = new Float32Array(N), PY = new Float32Array(N), DEPTH = new Float32Array(N);
+  const ORDER = new Uint32Array(N);
+  for (let i = 0; i < N; i++) ORDER[i] = i;
+
+  const STATE_PARAMS = {
+    idle:     { speed: 0.35, jitterAmp: 0.012, jitterFreq: 1.0, glow: 0.45 },
+    thinking: { speed: 1.7,  jitterAmp: 0.035, jitterFreq: 3.6, glow: 0.9  },
+    speaking: { speed: 1.2,  jitterAmp: 0.05,  jitterFreq: 4.8, glow: 1.05 },
+    voice:    { speed: 1.0,  jitterAmp: 0.045, jitterFreq: 5.6, glow: 0.95 },
+  };
+  const cur = { ...STATE_PARAMS.idle };
+  const EASE_SPEED = 4.5;
+
+  let state = "idle";
+  let hover = false;
+  let hoverAmt = 0;
+  let voiceAmplitude = 0;
+  let angleY = 0;
+  let angleX = 0.15;
+  let t = 0;
+
+  function orbRGB() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--orb-rgb").trim();
+    return raw || "255,255,255";
+  }
+  let ORB_RGB = "255,255,255";
+  let stamp = buildStamp(ORB_RGB);
+  function refreshColors() {
+    ORB_RGB = orbRGB();
+    stamp = buildStamp(ORB_RGB);
+  }
+  refreshColors();
+
+  function lerp(a, b, f) { return a + (b - a) * f; }
+  function easeToward(dt) {
+    const target = STATE_PARAMS[state];
+    const f = Math.min(1, dt * EASE_SPEED);
+    cur.speed = lerp(cur.speed, target.speed, f);
+    cur.jitterAmp = lerp(cur.jitterAmp, target.jitterAmp, f);
+    cur.jitterFreq = lerp(cur.jitterFreq, target.jitterFreq, f);
+    cur.glow = lerp(cur.glow, target.glow, f);
+    hoverAmt = lerp(hoverAmt, hover ? 1 : 0, Math.min(1, dt * 8));
+  }
+
+  // Cache do glow: um radial gradient é caro de reconstruir (addColorStop x3)
+  // e o raio/opacidade mudam pouco quadro a quadro — só reconstrói quando o
+  // raio "arredondado" muda (hover liga/desliga) ou a cor do tema muda.
+  // A intensidade (que muda todo frame com o estado) é aplicada via globalAlpha
+  // em vez de recriar o gradiente.
+  let glowCache = null, glowCacheKey = "";
+  function getGlow(glowR) {
+    const roundedR = Math.round(glowR);
+    const key = `${roundedR}|${ORB_RGB}`;
+    if (key !== glowCacheKey) {
+      const grad = ctx.createRadialGradient(CX, CY, R * 0.35, CX, CY, roundedR);
+      grad.addColorStop(0, `rgba(${ORB_RGB}, 0.2)`);
+      grad.addColorStop(0.6, `rgba(${ORB_RGB}, 0.07)`);
+      grad.addColorStop(1, `rgba(${ORB_RGB}, 0)`);
+      glowCache = grad;
+      glowCacheKey = key;
+    }
+    return glowCache;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    const hoverBoost = 1 + hoverAmt * 0.16;
+    const voiceGlow = state === "voice" ? voiceAmplitude * 0.5 : 0;
+    const stateGlow = cur.glow + voiceGlow;
+
+    const glowR = Math.min(GLOW_MAX_R, R * 1.4 * hoverBoost);
+    ctx.globalAlpha = Math.min(1, stateGlow);
+    ctx.fillStyle = getGlow(glowR);
+    ctx.beginPath();
+    ctx.arc(CX, CY, glowR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+    const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+    const amp = cur.jitterAmp * (1 + voiceGlow);
+    const freq = cur.jitterFreq;
+
+    for (let i = 0; i < N; i++) {
+      const j = Math.sin(t * freq + PHASE[i]) * amp;
+      const rr = (1 + j) * hoverBoost;
+
+      const x0 = X0[i], y0 = Y0[i], z0 = Z0[i];
+      const x = x0 * cosY - z0 * sinY;
+      const z = x0 * sinY + z0 * cosY;
+      const y2 = y0 * cosX - z * sinX;
+      const z2 = y0 * sinX + z * cosX;
+
+      const scale = rr * R;
+      PX[i] = CX + x * scale;
+      PY[i] = CY + y2 * scale;
+      DEPTH[i] = z2;
+    }
+
+    const depthRef = DEPTH;
+    Array.prototype.sort.call(ORDER, (a, b) => depthRef[a] - depthRef[b]);
+
+    const stampCanvas = stamp.canvas, sw = stamp.w, sh = stamp.h;
+    const wordScale = 0.11; // tamanho da palavra em relação ao raio da orb
+    const rotBase = t * cur.speed * 0.3;
+
+    // setTransform substitui save/translate/rotate/restore por partícula: uma
+    // única chamada de matriz em vez de quatro, e sem empilhar/desempilhar
+    // estado do contexto (ctx.save/restore por item é a parte mais cara do
+    // loop anterior depois do próprio drawImage).
+    for (let k = 0; k < N; k++) {
+      const i = ORDER[k];
+      const depth = DEPTH[i];
+      const front = (depth + 1) / 2;
+      if (front < 0.06) continue; // não desenha o que está bem atrás (economiza + evita poluição visual)
+
+      const px = PX[i], py = PY[i];
+      const alpha = Math.min(1, 0.15 + front * 0.85);
+      const scale = (0.55 + front * 0.75) * SJITTER[i] * wordScale * (R / 100);
+
+      const drawW = sw * scale, drawH = sh * scale;
+      const rot = ROT0[i] + rotBase * ROTSPD[i];
+      const cosR = Math.cos(rot), sinR = Math.sin(rot);
+
+      ctx.globalAlpha = alpha;
+      // setTransform substitui o CTM inteiro (não acumula com ctx.scale(DPR) do
+      // setup) — por isso o DPR entra manualmente aqui, e cx/cy também precisam
+      // ir na matriz já que px/py são coordenadas lógicas, não de device.
+      ctx.setTransform(cosR * DPR, sinR * DPR, -sinR * DPR, cosR * DPR, px * DPR, py * DPR);
+      ctx.drawImage(stampCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+    }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = `rgba(${ORB_RGB}, ${0.35 * stateGlow})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * 1.001, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  let frameCount = 0, fpsAcc = 0, fpsLast = performance.now();
+  let lastTs = performance.now();
+  function tick(ts) {
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    t += dt;
+    easeToward(dt);
+    angleY += dt * 0.3 * cur.speed * (1 + hoverAmt * 0.3);
+    draw();
+
+    frameCount++;
+    if (ts - fpsLast > 500) {
+      fpsAcc = Math.round((frameCount * 1000) / (ts - fpsLast));
+      perfEl.textContent = `· ${fpsAcc} fps · ${N} partículas`;
+      frameCount = 0;
+      fpsLast = ts;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  wrap.addEventListener("mouseenter", () => { hover = true; wrap.classList.add("hover"); });
+  wrap.addEventListener("mouseleave", () => { hover = false; wrap.classList.remove("hover"); });
+
+  let voiceRAF = null;
+  function setVoiceAmplitudeLoop(on) {
+    if (voiceRAF) cancelAnimationFrame(voiceRAF);
+    if (!on) { voiceAmplitude = 0; return; }
+    let vt = 0;
+    const step = () => {
+      vt += 0.05;
+      voiceAmplitude = 0.35 + Math.abs(Math.sin(vt * 3)) * 0.5 + Math.random() * 0.1;
+      if (state === "voice") voiceRAF = requestAnimationFrame(step);
+    };
+    step();
+  }
+
+  document.querySelectorAll("#controls button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#controls button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state = btn.dataset.state;
+      wrap.classList.remove("thinking", "speaking");
+      if (state === "thinking") wrap.classList.add("thinking");
+      if (state === "speaking") wrap.classList.add("speaking");
+      label.textContent = LABELS[state];
+      setVoiceAmplitudeLoop(state === "voice");
+    });
+  });
+
+  document.querySelectorAll("#theme-row button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#theme-row button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.documentElement.setAttribute("data-theme", btn.dataset.theme);
+      document.body.setAttribute("data-theme", btn.dataset.theme);
+      refreshColors();
+    });
+  });
+})();
+</script>
+</body>
+</html>

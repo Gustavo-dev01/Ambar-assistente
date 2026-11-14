@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+httpx
+pywebview
+pillow
+pypdf
+python-multipart
+cryptography

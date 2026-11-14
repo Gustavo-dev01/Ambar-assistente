@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>Teste — Orb Ditherpunk</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: oklch(14% 0.006 70);
+    --surface: oklch(20% 0.012 70);
+    --text: oklch(96% 0.004 70);
+    --text-secondary: oklch(72% 0.014 70);
+    --accent: #cc9a00;
+    --accent-rgb: 204,154,0;
+    /* orb: no dark, só a cor de texto (branco) — sem dourado */
+    --orb-rgb: 255,255,255;
+  }
+  :root[data-theme="light"] {
+    --bg: oklch(90% 0.01 70);
+    --surface: oklch(97% 0.005 70);
+    --text: #1C1917;
+    --text-secondary: oklch(46% 0.012 70);
+    --accent: #d49e00;
+    --accent-rgb: 212,158,0;
+    /* orb: no light, só a cor de texto (preto) — sem dourado */
+    --orb-rgb: 28,25,23;
+  }
+  :root[data-theme="cyberpunk"] {
+    --bg: oklch(9% 0.02 290);
+    --surface: oklch(16% 0.03 290);
+    --text: oklch(93% 0.05 195);
+    --text-secondary: oklch(72% 0.09 195);
+    --accent: oklch(64% 0.25 335);
+    --accent-rgb: 230,50,180;
+    /* orb: no cyberpunk, usa a cor de destaque roxa/magenta do próprio tema */
+    --orb-rgb: 230,50,180;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    background: var(--bg);
+    font-family: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+    color: var(--text);
+    transition: background .4s ease, color .4s ease;
+  }
+
+  h1 { font-size: 15px; font-weight: 600; opacity: .7; letter-spacing: .02em; margin: 0; }
+
+  #orb-wrap {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    cursor: pointer;
+    transition: transform .5s ease;
+  }
+  #orb-wrap.thinking { transform: scale(1.05); }
+  #orb-wrap.speaking { transform: scale(1.09); }
+  #orb-wrap.hover { transform: scale(1.04); }
+
+  #orb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  #orb-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+  }
+
+  #controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 480px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--text-secondary);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    opacity: .85;
+  }
+  button:hover { opacity: 1; }
+  button.active { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  #theme-row { display: flex; gap: 8px; margin-top: 6px; }
+
+  footer { font-size: 11.5px; color: var(--text-secondary); opacity: .6; text-align: center; max-width: 420px; }
+</style>
+</head>
+<body data-theme="dark">
+
+<h1>PROTÓTIPO — não afeta o app real</h1>
+
+<div id="orb-wrap">
+  <canvas id="orb-canvas" width="520" height="520"></canvas>
+</div>
+
+<div id="orb-status">
+  <span id="orb-label">Pronta para ajudar</span>
+</div>
+
+<div id="controls">
+  <button data-state="idle" class="active">idle</button>
+  <button data-state="thinking">thinking</button>
+  <button data-state="speaking">speaking</button>
+  <button data-state="voice">voice (mic)</button>
+</div>
+
+<div id="theme-row">
+  <button data-theme="dark" class="active">dark</button>
+  <button data-theme="light">light</button>
+  <button data-theme="cyberpunk">cyberpunk</button>
+</div>
+
+<footer>Passe o mouse sobre a orb pra ver a reação de hover. Os botões simulam os estados reais do app (pensando / respondendo) e um estado de voz (amplitude de microfone simulada) já preparado para o chat por voz.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("orb-canvas");
+  const ctx = canvas.getContext("2d");
+  const wrap = document.getElementById("orb-wrap");
+  const label = document.getElementById("orb-label");
+  const LABELS = { idle: "Pronta para ajudar", thinking: "Pensando...", speaking: "Respondendo...", voice: "Ouvindo..." };
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const SIZE = 520;
+  canvas.width = SIZE * DPR;
+  canvas.height = SIZE * DPR;
+  ctx.scale(DPR, DPR);
+
+  const CX = SIZE / 2, CY = SIZE / 2;
+  const R = 200;
+
+  // ---- Grade esférica de pontos (latitude/longitude), estilo ditherpunk ----
+  // Densidade maior que a v1 (RINGS 40->64) pra ler mais parecido com a referência
+  // (textura fina de "ruído"), mas todo o layout por-frame usa typed arrays
+  // pré-alocados (nada de criar objetos/arrays novos dentro do loop de animação),
+  // e Float32Array.sort não existe -> ordenamos um array de índices (Uint32Array)
+  // reaproveitado a cada frame em vez de reconstruir/objetar por ponto.
+  const RINGS = 64;
+  const rawPoints = [];
+  for (let i = 0; i <= RINGS; i++) {
+    const lat = (i / RINGS) * Math.PI - Math.PI / 2;
+    const ringR = Math.cos(lat);
+    const circumference = Math.max(1, Math.round(RINGS * 2 * ringR));
+    for (let j = 0; j < circumference; j++) {
+      const lon = (j / circumference) * Math.PI * 2;
+      rawPoints.push({
+        x0: Math.cos(lat) * Math.cos(lon),
+        y0: Math.sin(lat),
+        z0: Math.cos(lat) * Math.sin(lon),
+        phase: Math.random() * Math.PI * 2,
+        sizeJitter: 0.55 + Math.random() * 0.85,
+      });
+    }
+  }
+  const N = rawPoints.length;
+  const X0 = new Float32Array(N), Y0 = new Float32Array(N), Z0 = new Float32Array(N);
+  const PHASE = new Float32Array(N), SJITTER = new Float32Array(N);
+  rawPoints.forEach((p, i) => { X0[i] = p.x0; Y0[i] = p.y0; Z0[i] = p.z0; PHASE[i] = p.phase; SJITTER[i] = p.sizeJitter; });
+
+  // buffers reaproveitados por frame (sem realloc)
+  const PX = new Float32Array(N), PY = new Float32Array(N), DEPTH = new Float32Array(N);
+  const ORDER = new Uint32Array(N);
+  for (let i = 0; i < N; i++) ORDER[i] = i;
+
+  // padrão Bayer 4x4 pra dithering do tamanho/opacidade dos pontos
+  const BAYER4 = [
+    [0, 8, 2, 10],
+    [12, 4, 14, 6],
+    [3, 11, 1, 9],
+    [15, 7, 13, 5],
+  ];
+  function bayer(x, y) {
+    return BAYER4[y & 3][x & 3] / 16;
+  }
+
+  // Estados-alvo: cada um define os parâmetros de animação/visual que a orb
+  // interpola suavemente até (em vez de trocar de comportamento no talo).
+  const STATE_PARAMS = {
+    idle:     { speed: 0.5,  jitterAmp: 0.015, jitterFreq: 1.1, glow: 0.45 },
+    thinking: { speed: 2.7,  jitterAmp: 0.04,  jitterFreq: 4.2, glow: 0.9  },
+    speaking: { speed: 1.9,  jitterAmp: 0.06,  jitterFreq: 5.5, glow: 1.05 },
+    voice:    { speed: 1.6,  jitterAmp: 0.05,  jitterFreq: 6.5, glow: 0.95 },
+  };
+  // valores atuais interpolados (o que de fato é usado pro desenho)
+  const cur = { ...STATE_PARAMS.idle };
+  const EASE_SPEED = 4.5; // quanto maior, mais rápida a transição entre estados
+
+  let state = "idle";
+  let hover = false;
+  let hoverAmt = 0; // 0..1 suavizado
+  let voiceAmplitude = 0; // 0..1, alimentado externamente no modo voz
+  let angleY = 0;
+  let angleX = 0.15;
+  let t = 0;
+
+  function orbRGB() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--orb-rgb").trim();
+    return raw || "255,255,255";
+  }
+  let ORB_RGB = "255,255,255";
+  function refreshColors() { ORB_RGB = orbRGB(); }
+  refreshColors();
+
+  function lerp(a, b, f) { return a + (b - a) * f; }
+
+  function easeToward(dt) {
+    const target = STATE_PARAMS[state];
+    const f = Math.min(1, dt * EASE_SPEED);
+    cur.speed = lerp(cur.speed, target.speed, f);
+    cur.jitterAmp = lerp(cur.jitterAmp, target.jitterAmp, f);
+    cur.jitterFreq = lerp(cur.jitterFreq, target.jitterFreq, f);
+    cur.glow = lerp(cur.glow, target.glow, f);
+    hoverAmt = lerp(hoverAmt, hover ? 1 : 0, Math.min(1, dt * 8));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    const accent = ORB_RGB;
+    const hoverBoost = 1 + hoverAmt * 0.16;
+    const voiceGlow = state === "voice" ? voiceAmplitude * 0.5 : 0;
+    const stateGlow = cur.glow + voiceGlow;
+
+    // glow de fundo (halo) — mais forte e com um segundo halo mais justo pra
+    // reforçar a leitura de "esfera luminosa" da referência
+    const glowR = R * 1.4 * hoverBoost;
+    const grad = ctx.createRadialGradient(CX, CY, R * 0.35, CX, CY, glowR);
+    grad.addColorStop(0, `rgba(${accent}, ${0.22 * stateGlow})`);
+    grad.addColorStop(0.6, `rgba(${accent}, ${0.08 * stateGlow})`);
+    grad.addColorStop(1, `rgba(${accent}, 0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(CX, CY, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tightGlowR = R * 1.06 * hoverBoost;
+    const grad2 = ctx.createRadialGradient(CX, CY, R * 0.9, CX, CY, tightGlowR);
+    grad2.addColorStop(0, `rgba(${accent}, 0)`);
+    grad2.addColorStop(1, `rgba(${accent}, ${0.28 * stateGlow})`);
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.arc(CX, CY, tightGlowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+    const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+    const amp = cur.jitterAmp * (1 + voiceGlow);
+    const freq = cur.jitterFreq;
+
+    for (let i = 0; i < N; i++) {
+      const j = Math.sin(t * freq + PHASE[i]) * amp;
+      const rr = (1 + j) * hoverBoost;
+
+      const x0 = X0[i], y0 = Y0[i], z0 = Z0[i];
+      const x = x0 * cosY - z0 * sinY;
+      const z = x0 * sinY + z0 * cosY;
+
+      const y2 = y0 * cosX - z * sinX;
+      const z2 = y0 * sinX + z * cosX;
+
+      const scale = rr * R;
+      PX[i] = CX + x * scale;
+      PY[i] = CY + y2 * scale;
+      DEPTH[i] = z2;
+    }
+
+    // sort de índices por profundidade (trás -> frente), reaproveitando ORDER
+    // (Array.prototype.sort funciona em TypedArray de índices sem alocar novo array)
+    const depthRef = DEPTH;
+    Array.prototype.sort.call(ORDER, (a, b) => depthRef[a] - depthRef[b]);
+
+    for (let k = 0; k < N; k++) {
+      const i = ORDER[k];
+      const depth = DEPTH[i];
+      const front = (depth + 1) / 2; // 0..1
+
+      const px = PX[i], py = PY[i];
+      const gx = px | 0, gy = py | 0;
+      const ditherThreshold = bayer(gx, gy);
+      if (front < ditherThreshold * 0.5) continue;
+
+      const baseAlpha = 0.1 + front * 0.8;
+      const size = (0.45 + front * 1.7) * SJITTER[i] * hoverBoost;
+
+      ctx.fillStyle = `rgba(${accent}, ${Math.min(1, baseAlpha)})`;
+      ctx.beginPath();
+      ctx.arc(px, py, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // anel fino de contorno (edge) pra reforçar leitura de esfera
+    ctx.strokeStyle = `rgba(${accent}, ${0.4 * stateGlow})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * 1.001, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  let lastTs = performance.now();
+  function tick(ts) {
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    t += dt;
+    easeToward(dt);
+    angleY += dt * 0.35 * cur.speed * (1 + hoverAmt * 0.3);
+    draw();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ---- Interação: hover ----
+  wrap.addEventListener("mouseenter", () => { hover = true; wrap.classList.add("hover"); });
+  wrap.addEventListener("mouseleave", () => { hover = false; wrap.classList.remove("hover"); });
+
+  // ---- Simulação de amplitude de voz (hook pra futuro chat de voz) ----
+  let voiceRAF = null;
+  function setVoiceAmplitudeLoop(on) {
+    if (voiceRAF) cancelAnimationFrame(voiceRAF);
+    if (!on) { voiceAmplitude = 0; return; }
+    let vt = 0;
+    const step = () => {
+      vt += 0.05;
+      // no real: substituir por análise de AnalyserNode (Web Audio) do mic
+      voiceAmplitude = 0.35 + Math.abs(Math.sin(vt * 3)) * 0.5 + Math.random() * 0.1;
+      if (state === "voice") voiceRAF = requestAnimationFrame(step);
+    };
+    step();
+  }
+
+  // ---- Controles de estado ----
+  document.querySelectorAll("#controls button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#controls button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state = btn.dataset.state;
+      wrap.classList.remove("thinking", "speaking");
+      if (state === "thinking") wrap.classList.add("thinking");
+      if (state === "speaking") wrap.classList.add("speaking");
+      label.textContent = LABELS[state];
+      setVoiceAmplitudeLoop(state === "voice");
+    });
+  });
+
+  // ---- Controles de tema ----
+  document.querySelectorAll("#theme-row button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#theme-row button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.documentElement.setAttribute("data-theme", btn.dataset.theme);
+      document.body.setAttribute("data-theme", btn.dataset.theme);
+      refreshColors();
+    });
+  });
+})();
+</script>
+</body>
+</html>
